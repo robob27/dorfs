@@ -8,7 +8,7 @@ use sdl2::video::WindowContext;
 use sdl2::rect::Rect;
 use sdl2::rect::Point;
 
-use specs::{World, WorldExt, Join};
+use specs::{World, WorldExt, Join, DispatcherBuilder};
 
 use std::time::Duration;
 use std::path::Path;
@@ -17,6 +17,7 @@ use std::collections::HashMap;
 pub mod texture_manager;
 pub mod utils;
 pub mod components;
+pub mod enums;
 
 pub mod game;
 
@@ -87,9 +88,16 @@ fn main() -> Result<(), String> {
     };
     gs.ecs.register::<components::Position>();
     gs.ecs.register::<components::Renderable>();
+    gs.ecs.register::<components::MovesRandomly>();
     gs.ecs.register::<components::Player>();
+    gs.ecs.register::<components::Size>();
     
     game::load_world(&mut gs.ecs);
+
+    let mut dispatcher = DispatcherBuilder::new()
+      .with(crate::components::CollisionDetectionSystem, "collision_detection", &[])
+      .build();
+    dispatcher.dispatch(&mut gs.ecs);
 
     'running: loop {
         // Handle events
@@ -120,6 +128,7 @@ fn main() -> Result<(), String> {
                 _ => {} 
             }
         }
+        dispatcher.dispatch(&mut gs.ecs);
         game::update(&mut gs.ecs, &mut key_manager);
         render(&mut canvas, &mut tex_man, &texture_creator, &font, &gs.ecs)?;
 
